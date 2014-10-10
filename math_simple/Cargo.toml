@@ -1,0 +1,15 @@
+[package]
+name = "mathexpr"
+version = "0.0.1"
+authors = ["Allan Simon <allan.simon@supinfo.com>"]
+
+[lib]
+name = "mathexpr"
+path = "src/lib.rs"
+plugin = true
+
+[[bin]]
+
+name = "test"
+
+
