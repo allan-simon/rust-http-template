@@ -1,6 +1,7 @@
 use syntax::{ast, codemap, parse};
 use syntax::ext::base;
 use parse::Parse;
+use syntax::parse::token;
 use syntax::ext::base::MacExpr;
 use syntax::ext::base::ExtCtxt;
 use syntax::ext::build::AstBuilder;  // trait for expr_uint
@@ -44,7 +45,15 @@ pub fn morse<'a>(
         (sp, &mut*cx)
     );
 
-    println!("we found {}", state.full_message.unwrap());
-    let total = 42;
-    MacExpr::new(cx.expr_uint(sp, total))
+
+    MacExpr::new(
+        cx.expr_str(
+            sp,
+            // transform a &str into an InternedString
+            // usable by expr_str
+            token::intern_and_get_ident(
+                state.full_message.unwrap().as_slice()
+            )
+        )
+    )
 }

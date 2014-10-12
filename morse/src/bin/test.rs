@@ -4,7 +4,7 @@ extern crate morse;
 
 fn main() {
     println!(
-        "oh a int {}",
+        "oh a string {}",
         morse! {.-_.-_-...}
     );
 }
