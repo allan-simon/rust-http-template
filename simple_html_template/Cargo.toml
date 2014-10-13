@@ -1,0 +1,15 @@
+[package]
+name = "html_template"
+version = "0.0.1"
+authors = ["Allan Simon <allan.simon@supinfo.com>"]
+
+[lib]
+name = "html_template"
+path = "src/lib.rs"
+plugin = true
+
+[[bin]]
+
+name = "test"
+
+
