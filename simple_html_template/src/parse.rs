@@ -109,26 +109,11 @@ impl<'a, 'b> Parse<(
         println!("parser");
 
         parse_start_template(&mut state, parser);
-        parse_end_template(&mut state, parser);
-        while parser.token != token::EOF {
-
-
-            match parser.token {
-                token::LT => println!("found <"),
-                token::GT => println!("found >"),
-                token::LPAREN => println!("found ("),
-                token::RPAREN => println!("found )"),
-                token::BINOP(token::PERCENT) => println!("found %"),
-                token::IDENT(ident, _) => {
-                    println!("found ident {}", ident.as_str());
-                },
-                _ => {
-                    parser.fatal("not supported");
-                }
-            }
+        //TODO handle token::LE (see how they've done for brain_fuck macro
+        while parser.token != token::LT && parser.token != token::EOF {
             parser.bump();
         }
-
+        parse_end_template(&mut state, parser);
         state
     }
 }
