@@ -36,7 +36,7 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
             function,
             token::BINOP(token::PERCENT),
             token::GT
-        ) => { println!("nice job")},
+        ) => { println!("found template beginning")},
 
         (one, two, three, four, five, six, seven) => {
             parser.fatal(format!(
@@ -54,7 +54,35 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 }
 
 fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
+    match (
+        parser.bump_and_get(),
+        parser.bump_and_get(),
+        parser.parse_ident(),
+        parser.parse_ident(),
+        parser.bump_and_get(),
+        parser.bump_and_get()
+    ) {
+        (
+            token::LT,
+            token::BINOP(token::PERCENT),
+            end,
+            template,
+            token::BINOP(token::PERCENT),
+            token::GT
+        ) => { println!("found end template")},
 
+        (one, two, three, four, five, six) => {
+            parser.fatal(format!(
+                "Expected `<% end template %>`, found {}{}{}{}{}{}",
+                one,
+                two,
+                three,
+                four,
+                five,
+                six
+            ).as_slice());
+        }
+    };
 
 }
 
