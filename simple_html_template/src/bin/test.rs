@@ -5,7 +5,8 @@ extern crate html_template;
 html_template! hello_world {
 <% template render() %>
 
-plop plop tatata
+plop plop tatata < dedd fn() < >
+
 
 <% end template %>
 }

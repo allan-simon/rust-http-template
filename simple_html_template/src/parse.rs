@@ -21,7 +21,6 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 
     match (
         parser.bump_and_get(),
-        parser.bump_and_get(),
         parser.parse_ident(),
         parser.parse_ident(),
         parser.parse_fn_decl(true),
@@ -29,7 +28,6 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
         parser.bump_and_get()
     ) {
         (
-            token::LT,
             token::BINOP(token::PERCENT),
             ident,
             functioname,
@@ -38,42 +36,9 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
             token::GT
         ) => { println!("found template beginning")},
 
-        (one, two, three, four, five, six, seven) => {
-            parser.fatal(format!(
-                "Expected `<% template xxx() %>`, found {}{}{}{}{}{}{}",
-                one,
-                two,
-                three,
-                four,
-                five,
-                six,
-                seven,
-            ).as_slice());
-        }
-    };
-}
-
-fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
-    match (
-        parser.bump_and_get(),
-        parser.bump_and_get(),
-        parser.parse_ident(),
-        parser.parse_ident(),
-        parser.bump_and_get(),
-        parser.bump_and_get()
-    ) {
-        (
-            token::LT,
-            token::BINOP(token::PERCENT),
-            end,
-            template,
-            token::BINOP(token::PERCENT),
-            token::GT
-        ) => { println!("found end template")},
-
         (one, two, three, four, five, six) => {
             parser.fatal(format!(
-                "Expected `<% end template %>`, found {}{}{}{}{}{}",
+                "Expected `<% template xxx() %>`, found {}{}{}{}{}{}",
                 one,
                 two,
                 three,
@@ -83,6 +48,50 @@ fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
             ).as_slice());
         }
     };
+}
+
+fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
+    match (
+        parser.bump_and_get(),
+        parser.parse_ident(),
+        parser.parse_ident(),
+        parser.bump_and_get(),
+        parser.bump_and_get()
+    ) {
+        (
+            token::BINOP(token::PERCENT),
+            end,
+            template,
+            token::BINOP(token::PERCENT),
+            token::GT
+        ) => { println!("found end template")},
+
+        (one, two, three, four, five) => {
+            parser.fatal(format!(
+                "Expected `<% end template %>`, found {}{}{}{}{}",
+                one,
+                two,
+                three,
+                four,
+                five,
+            ).as_slice());
+        }
+    };
+
+}
+
+fn is_template_tag_start (parser: &Parser) -> bool {
+
+    if (parser.token != token::BINOP(token::PERCENT)) {
+        return true;
+    }
+
+    match parser.last_token {
+        None => return false,
+        Some(ref last_token) => {
+            return **last_token == token::LT
+        }
+    }
 
 }
 
@@ -108,9 +117,20 @@ impl<'a, 'b> Parse<(
 
         println!("parser");
 
+        // try to find a <%
+        while
+            is_template_tag_start(parser) &&
+            parser.token != token::EOF
+        {
+            parser.bump();
+        }
         parse_start_template(&mut state, parser);
         //TODO handle token::LE (see how they've done for brain_fuck macro
-        while parser.token != token::LT && parser.token != token::EOF {
+        // try to find a <%
+        while
+            is_template_tag_start(parser) &&
+            parser.token != token::EOF
+        {
             parser.bump();
         }
         parse_end_template(&mut state, parser);
