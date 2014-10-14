@@ -15,13 +15,14 @@ pub trait Parse<Cfg> {
 }
 
 static TEMPLATE:      &'static str = "template";
+static END:           &'static str = "end";
 
 ///
 fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 
     match (
         parser.bump_and_get(),
-        parser.parse_ident(),
+        parser.parse_ident().as_str(),
         parser.parse_ident(),
         parser.parse_fn_decl(true),
         parser.bump_and_get(),
@@ -29,12 +30,12 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
     ) {
         (
             token::BINOP(token::PERCENT),
-            ident,
+            block_name,
             functioname,
-            function,
+            ref function,
             token::BINOP(token::PERCENT),
             token::GT
-        ) => { println!("found template beginning")},
+        ) if block_name == TEMPLATE => { println!("found template beginning")},
 
         (one, two, three, four, five, six) => {
             parser.fatal(format!(
@@ -53,8 +54,8 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
     match (
         parser.bump_and_get(),
-        parser.parse_ident(),
-        parser.parse_ident(),
+        parser.parse_ident().as_str(),
+        parser.parse_ident().as_str(),
         parser.bump_and_get(),
         parser.bump_and_get()
     ) {
@@ -64,16 +65,16 @@ fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
             template,
             token::BINOP(token::PERCENT),
             token::GT
-        ) => { println!("found end template")},
+        ) if end == END && template == TEMPLATE => { println!("found end template")},
 
         (one, two, three, four, five) => {
             parser.fatal(format!(
-                "Expected `<% end template %>`, found {}{}{}{}{}",
-                one,
+                "Expected `<% end template %>`, found <{} {} {} {}{}",
+                Parser::token_to_string(&one),
                 two,
                 three,
-                four,
-                five,
+                Parser::token_to_string(&four),
+                Parser::token_to_string(&five),
             ).as_slice());
         }
     };
