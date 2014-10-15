@@ -14,83 +14,75 @@ pub trait Parse<Cfg> {
     fn parse(&mut Parser, Cfg) -> Self;
 }
 
-static TEMPLATE:      &'static str = "template";
-static END:           &'static str = "end";
+const TEMPLATE:      &'static str = "template";
+const END:           &'static str = "end";
 
 ///
 fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 
     match (
-        parser.bump_and_get(),
-        parser.parse_ident().as_str(),
         parser.parse_ident(),
         parser.parse_fn_decl(true),
         parser.bump_and_get(),
         parser.bump_and_get()
     ) {
         (
-            token::BINOP(token::PERCENT),
-            block_name,
             functioname,
             ref function,
             token::BINOP(token::PERCENT),
             token::GT
-        ) if block_name == TEMPLATE => { println!("found template beginning")},
+        ) => {
+            println!("found template beginning")
+        },
 
-        (one, two, three, four, five, six) => {
+        (one, two, three, four) => {
             parser.fatal(format!(
-                "Expected `<% template xxx() %>`, found {}{}{}{}{}{}",
+                "Expected `<% template xxx() %>`, found <% template {} {} {}{}",
                 one,
                 two,
                 three,
-                four,
-                five,
-                six
+                four
             ).as_slice());
         }
     };
 }
 
 fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
+
     match (
-        parser.bump_and_get(),
-        parser.parse_ident().as_str(),
         parser.parse_ident().as_str(),
         parser.bump_and_get(),
         parser.bump_and_get()
     ) {
         (
-            token::BINOP(token::PERCENT),
-            end,
             template,
             token::BINOP(token::PERCENT),
             token::GT
-        ) if end == END && template == TEMPLATE => { println!("found end template")},
+        ) if template == TEMPLATE => { println!("found end template")},
 
-        (one, two, three, four, five) => {
+        (one, two, three) => {
             parser.fatal(format!(
-                "Expected `<% end template %>`, found <{} {} {} {}{}",
-                Parser::token_to_string(&one),
-                two,
-                three,
-                Parser::token_to_string(&four),
-                Parser::token_to_string(&five),
+                "Expected `<% end template %>`, found <% end {} {}{}",
+                one,
+                Parser::token_to_string(&two),
+                Parser::token_to_string(&three),
             ).as_slice());
         }
     };
 
 }
 
-fn is_template_tag_start (parser: &Parser) -> bool {
+fn is_template_tag_start (parser: &Parser, last_token: Option<token::Token>) -> bool {
 
     if (parser.token != token::BINOP(token::PERCENT)) {
-        return true;
+        return false;
     }
 
-    match parser.last_token {
+
+    match last_token {
         None => return false,
-        Some(ref last_token) => {
-            return **last_token == token::LT
+        Some(value) => {
+            return value == token::LT;
         }
     }
 
@@ -118,23 +110,53 @@ impl<'a, 'b> Parse<(
 
         println!("parser");
 
-        // try to find a <%
-        while
-            is_template_tag_start(parser) &&
-            parser.token != token::EOF
-        {
+        let mut last_token = None;
+
+        while parser.token != token::EOF {
+            
+            if !is_template_tag_start(parser, last_token) {
+                last_token = Some(parser.token.clone());
+                parser.bump();
+                continue;
+            }
+
+            last_token = Some(parser.token.clone());
+            parser.bump();
+            //TODO handle token::LE (see how they've done for brain_fuck macro
+            match parser.parse_ident().as_str() {
+
+                TEMPLATE => {
+                    if state.template_opened {
+                        parser.fatal("<% template %> can't be nested");
+                    }
+                    parse_start_template(&mut state, parser);
+                    state.template_opened = true;
+                },
+                END => {
+                    if state.template_opened == false {
+                        parser.fatal(
+                            "<% end xxxx %> found without opening tag"
+                        );
+                    }
+                    parse_end_template(&mut state, parser);
+                    state.template_opened = false;
+                },
+                otherwise => {
+                    let span = parser.last_span;
+                    parser.span_fatal(
+                        span,
+                        format!(
+                            "Expected `template` or `end`, but found `{}`",
+                            otherwise
+                        ).as_slice()
+                    );
+                }
+            }
+
+            last_token = Some(parser.token.clone());
             parser.bump();
         }
-        parse_start_template(&mut state, parser);
-        //TODO handle token::LE (see how they've done for brain_fuck macro
-        // try to find a <%
-        while
-            is_template_tag_start(parser) &&
-            parser.token != token::EOF
-        {
-            parser.bump();
-        }
-        parse_end_template(&mut state, parser);
+
         state
     }
 }
