@@ -157,6 +157,11 @@ impl<'a, 'b> Parse<(
             parser.bump();
         }
 
+
+        if (state.template_opened == true) {
+            parser.fatal("template tag opened but not closed");
+        }
+
         state
     }
 }
