@@ -88,6 +88,25 @@ fn is_template_tag_start (parser: &Parser, last_token: Option<token::Token>) -> 
 
 }
 
+/// Extract as raw text the content between two spans
+///
+fn block_to_string(
+    context: &base::ExtCtxt,
+    start_span: &codemap::Span,
+    end_span: &codemap::Span
+) -> String {
+
+
+    let tmp_span = codemap::Span {
+        lo: start_span.lo,
+        hi: end_span.lo,
+        expn_id: end_span.expn_id
+    };
+
+    context.codemap().span_to_snippet(tmp_span).unwrap_or(String::new())
+
+}
+
 
 ///
 ///
@@ -103,7 +122,7 @@ impl<'a, 'b> Parse<(
     ///
     fn parse(
         parser: &mut Parser,
-        (_, _, name): (codemap::Span, &'a mut base::ExtCtxt, Option<ast::Ident>)
+        (_, context, name): (codemap::Span, &'a mut base::ExtCtxt, Option<ast::Ident>)
     ) -> HtmlState {
 
         let mut state = HtmlState::new(name);
@@ -111,10 +130,16 @@ impl<'a, 'b> Parse<(
         println!("parser");
 
         let mut last_token = None;
+        // to know when we have a piece of HTML to display as it
+        let mut start_html_block = parser.span.clone();
+        let mut end_html_block = parser.span.clone();
 
         while parser.token != token::EOF {
             
             if !is_template_tag_start(parser, last_token) {
+                // we update endspan everytime as we're not sure
+                // when a span will be the last one
+                end_html_block = parser.span.clone();
                 last_token = Some(parser.token.clone());
                 parser.bump();
                 continue;
@@ -131,6 +156,10 @@ impl<'a, 'b> Parse<(
                     }
                     parse_start_template(&mut state, parser);
                     state.template_opened = true;
+                    // we consider that what we have after a <% template %>
+                    // is certainly html
+                    start_html_block = parser.span.clone();
+
                 },
                 END => {
                     if state.template_opened == false {
@@ -140,6 +169,13 @@ impl<'a, 'b> Parse<(
                     }
                     parse_end_template(&mut state, parser);
                     state.template_opened = false;
+
+                    state.inner_string = block_to_string(
+                        context,
+                        &start_html_block,
+                        &end_html_block
+                    );
+
                 },
                 otherwise => {
                     let span = parser.last_span;

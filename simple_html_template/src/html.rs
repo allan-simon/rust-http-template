@@ -14,7 +14,8 @@ use generate::Generate;
 #[deriving(Clone)]
 pub struct HtmlState {
     pub name: Option<ast::Ident>,
-    pub template_opened: bool
+    pub template_opened: bool,
+    pub inner_string: String
 }
 
 ///
@@ -24,7 +25,8 @@ impl HtmlState {
     pub fn new(name: Option<ast::Ident>) -> HtmlState {
         HtmlState {
             name: name,
-            template_opened: false
+            template_opened: false,
+            inner_string: String::new()
         }
     }
 }
