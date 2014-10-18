@@ -1,10 +1,7 @@
 use syntax::{ast, codemap, parse};
 use syntax::ext::base;
 use parse::Parse;
-use syntax::parse::token;
-use syntax::ext::base::MacExpr;
 use syntax::ext::base::ExtCtxt;
-use syntax::ext::build::AstBuilder;  // trait for expr_uint
 
 use generate::Generate;
 

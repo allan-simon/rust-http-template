@@ -1,6 +1,5 @@
 use syntax::ptr::P;
 use syntax::{ast, ast_util, abi, codemap};
-use syntax::parse::token;
 use syntax::ext::base;
 use syntax::ext::build::AstBuilder;
 

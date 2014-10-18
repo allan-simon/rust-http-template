@@ -4,8 +4,6 @@ use syntax::ext::base;
 use syntax::parse::token;
 use syntax::parse::parser::Parser;
 
-use syntax::codemap::Pos;
-
 use html::HtmlState;
 
 /// Trait that means something can be parsed with a configuration.
@@ -74,7 +72,7 @@ fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
 
 fn is_template_tag_start (parser: &Parser, last_token: Option<token::Token>) -> bool {
 
-    if (parser.token != token::BINOP(token::PERCENT)) {
+    if parser.token != token::BINOP(token::PERCENT) {
         return false;
     }
 
@@ -194,7 +192,7 @@ impl<'a, 'b> Parse<(
         }
 
 
-        if (state.template_opened == true) {
+        if state.template_opened == true {
             parser.fatal("template tag opened but not closed");
         }
 
