@@ -3,14 +3,23 @@
 extern crate html_template;
 
 html_template! hello_world {
+
 <% template render() %>
 
-plop plop tatata < dedd fn() < >
-
+<html>
+    <head>
+    </head>
+    <body>
+        hello world
+    </body>
+</html>
 
 <% end template %>
+
 }
+
 
 fn main () {
 
+    println!("{}", hello_world::render());
 }
