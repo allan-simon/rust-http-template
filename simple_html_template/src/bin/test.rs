@@ -4,7 +4,7 @@ extern crate html_template;
 
 html_template! hello_world {
 
-<% template render() %>
+<% template plop() %>
 
 <html>
     <head>
@@ -21,5 +21,5 @@ html_template! hello_world {
 
 fn main () {
 
-    println!("{}", hello_world::render());
+    println!("{}", hello_world::plop());
 }

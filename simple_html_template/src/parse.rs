@@ -30,6 +30,7 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
             token::BINOP(token::PERCENT),
             token::GT
         ) => {
+            state.name = Some(functioname);
             println!("found template beginning")
         },
 

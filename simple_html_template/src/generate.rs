@@ -26,7 +26,7 @@ impl Generate<()> for HtmlState {
         _: ()
     ) -> P<ast::Item> {
 
-        let name = self.name.clone().unwrap();
+        let skin = self.skin.clone().unwrap();
 
         // we create the 'return' expression, it returns for the
         // moment a static string based on the one computed during
@@ -68,7 +68,9 @@ impl Generate<()> for HtmlState {
         let render_item = P(ast::Item {
             // TODO hardcoded, we should replace render
             // by the xxx coming from <% template xxx() %>
-            ident: cx.ident_of("render"),
+            ident: cx.ident_of(
+                self.name.unwrap().as_str()
+            ),
             // note: attrs here are all the #[], not to be confused
             // with the function arguments
             attrs: vec![],
@@ -83,6 +85,6 @@ impl Generate<()> for HtmlState {
 
         // we create the module made of the created function
         // TODO: allow the creation of several items
-        cx.item_mod(sp, sp, name, vec![], vec![], vec![render_item])
+        cx.item_mod(sp, sp, skin, vec![], vec![], vec![render_item])
     }
 }

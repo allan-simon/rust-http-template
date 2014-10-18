@@ -10,6 +10,7 @@ use generate::Generate;
 ///
 #[deriving(Clone)]
 pub struct HtmlState {
+    pub skin: Option<ast::Ident>,
     pub name: Option<ast::Ident>,
     pub template_opened: bool,
     pub inner_string: String
@@ -19,9 +20,10 @@ pub struct HtmlState {
 ///
 ///
 impl HtmlState {
-    pub fn new(name: Option<ast::Ident>) -> HtmlState {
+    pub fn new(skin: Option<ast::Ident>) -> HtmlState {
         HtmlState {
-            name: name,
+            skin: skin,
+            name: None,
             template_opened: false,
             inner_string: String::new()
         }
