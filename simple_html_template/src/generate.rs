@@ -4,6 +4,7 @@ use syntax::ext::base;
 use syntax::ext::build::AstBuilder;
 
 use html::HtmlState;
+use html::RawHtml;
 
 /// Trait meaning something can be turned into an ast::Item with configuration.
 pub trait Generate<Cfg> {
@@ -31,12 +32,20 @@ impl Generate<()> for HtmlState {
         // we create the 'return' expression, it returns for the
         // moment a static string based on the one computed during
         // parsing phase
-        let inner_string : &str = self.inner_string.as_slice();
+        let inner_string = {
+
+            let mut string = "";
+            for stuff in self.sub_tags.iter() {
+                match *stuff {
+                   RawHtml(ref x) => string = x.as_slice()
+                }
+            }
+            string
+        };
+
         let expr = quote_expr!(
             cx,
-            {
-                return $inner_string;
-            }
+            return $inner_string;
         );
 
 

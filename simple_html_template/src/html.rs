@@ -12,8 +12,15 @@ use generate::Generate;
 pub struct HtmlState {
     pub skin: Option<ast::Ident>,
     pub name: Option<ast::Ident>,
-    pub template_opened: bool,
-    pub inner_string: String
+    pub sub_tags: Vec<SubTag>
+}
+
+/// Defines the things we can put inside a <% template %>
+///
+///
+#[deriving(Clone)]
+pub enum SubTag {
+    RawHtml(String)
 }
 
 ///
@@ -24,8 +31,7 @@ impl HtmlState {
         HtmlState {
             skin: skin,
             name: None,
-            template_opened: false,
-            inner_string: String::new()
+            sub_tags: Vec::new()
         }
     }
 }

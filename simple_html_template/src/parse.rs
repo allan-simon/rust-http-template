@@ -5,6 +5,8 @@ use syntax::parse::token;
 use syntax::parse::parser::Parser;
 
 use html::HtmlState;
+use html::SubTag;
+use html::RawHtml;
 
 /// Trait that means something can be parsed with a configuration.
 pub trait Parse<Cfg> {
@@ -46,7 +48,10 @@ fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
     };
 }
 
-fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
+///
+///
+///
+fn parse_end_template(parser: &mut Parser) {
 
     match (
         parser.parse_ident().as_str(),
@@ -71,7 +76,13 @@ fn parse_end_template(state: &mut HtmlState, parser: &mut Parser) {
 
 }
 
-fn is_template_tag_start (parser: &Parser, last_token: Option<token::Token>) -> bool {
+///
+///
+///
+fn is_template_tag_start (
+    parser: &Parser,
+    last_token: Option<token::Token>
+) -> bool {
 
     if parser.token != token::BINOP(token::PERCENT) {
         return false;
@@ -106,6 +117,60 @@ fn block_to_string(
 
 }
 
+/// Parse the content inside a <% template xxx() %> tag
+/// and return when we've finished to parse the <% end template %>
+/// if we have parsed all tokens without seeing <% end template %>
+/// we quit with error
+fn parse_inner_template (
+    parser: &mut Parser,
+    context: &base::ExtCtxt
+) -> Vec<SubTag> {
+
+    let mut sub_tags = Vec::new();
+
+    let mut last_token = None;
+    // to know when we have a piece of HTML to display as it
+    let mut start_html_block = parser.span.clone();
+    let mut end_html_block = parser.span.clone();
+
+    while parser.token != token::EOF {
+
+        if !is_template_tag_start(parser, last_token) {
+            // we update endspan everytime as we're not sure
+            // when a span will be the last one
+            end_html_block = parser.span.clone();
+            last_token = Some(parser.token.clone());
+            parser.bump();
+            continue;
+        }
+        // we consider that what we have after a <% template %>
+        // is certainly html
+        //start_html_block = parser.span.clone();
+        last_token = Some(parser.token.clone());
+        parser.bump();
+
+        //TODO handle token::LE (see how they've done for brain_fuck macro
+        match parser.parse_ident().as_str() {
+            TEMPLATE => {
+                parser.fatal("<% template %> can't be nested");
+            }
+            END => {
+                parse_end_template(parser);
+                println!("start {} , end {}", start_html_block, end_html_block);
+                let inner_string = block_to_string(
+                    context,
+                    &start_html_block,
+                    &end_html_block
+                );
+                sub_tags.push(RawHtml(inner_string));
+                return sub_tags;
+            }
+            _ => { println!("ignored stuff");}
+        }
+    }
+
+    parser.fatal("template tag opened but not closed");
+}
 
 ///
 ///
@@ -129,16 +194,12 @@ impl<'a, 'b> Parse<(
         println!("parser");
 
         let mut last_token = None;
-        // to know when we have a piece of HTML to display as it
-        let mut start_html_block = parser.span.clone();
-        let mut end_html_block = parser.span.clone();
 
         while parser.token != token::EOF {
             
             if !is_template_tag_start(parser, last_token) {
                 // we update endspan everytime as we're not sure
                 // when a span will be the last one
-                end_html_block = parser.span.clone();
                 last_token = Some(parser.token.clone());
                 parser.bump();
                 continue;
@@ -150,31 +211,11 @@ impl<'a, 'b> Parse<(
             match parser.parse_ident().as_str() {
 
                 TEMPLATE => {
-                    if state.template_opened {
-                        parser.fatal("<% template %> can't be nested");
-                    }
                     parse_start_template(&mut state, parser);
-                    state.template_opened = true;
-                    // we consider that what we have after a <% template %>
-                    // is certainly html
-                    start_html_block = parser.span.clone();
-
+                    state.sub_tags = parse_inner_template(parser, context);
                 },
                 END => {
-                    if state.template_opened == false {
-                        parser.fatal(
-                            "<% end xxxx %> found without opening tag"
-                        );
-                    }
-                    parse_end_template(&mut state, parser);
-                    state.template_opened = false;
-
-                    state.inner_string = block_to_string(
-                        context,
-                        &start_html_block,
-                        &end_html_block
-                    );
-
+                    parser.fatal("<% end template %> found without opening tag");
                 },
                 otherwise => {
                     let span = parser.last_span;
@@ -192,10 +233,6 @@ impl<'a, 'b> Parse<(
             parser.bump();
         }
 
-
-        if state.template_opened == true {
-            parser.fatal("template tag opened but not closed");
-        }
 
         state
     }
