@@ -5,6 +5,8 @@ use syntax::ext::base::ExtCtxt;
 
 use generate::Generate;
 
+use template::Template;
+
 /// Defines the state of a `html_template!` macro as it is parsing.
 ///
 ///
@@ -12,17 +14,9 @@ use generate::Generate;
 pub struct HtmlState {
     pub skin: Option<ast::Ident>,
     pub name: Option<ast::Ident>,
-    pub sub_tags: Vec<SubTag>
+    pub templates: Vec<Template>
 }
 
-/// Defines the things we can put inside a <% template %>
-///
-///
-#[deriving(Clone)]
-pub enum SubTag {
-    RawHtml(String),
-    RawRust(String)
-}
 
 ///
 ///
@@ -32,7 +26,7 @@ impl HtmlState {
         HtmlState {
             skin: skin,
             name: None,
-            sub_tags: Vec::new()
+            templates: Vec::new()
         }
     }
 }

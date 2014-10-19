@@ -3,8 +3,8 @@ use syntax::parse::token;
 
 use syntax::ext::base;
 
-use html::SubTag;
-use html::RawRust;
+use template::SubTag;
+use template::RawRust;
 
 use parse_utils::block_to_string;
 

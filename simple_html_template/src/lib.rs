@@ -9,6 +9,9 @@ use self::html::html_template;
 
 mod html;
 mod rust;
+mod template;
+
+mod tags;
 mod parse;
 mod parse_utils;
 mod generate;

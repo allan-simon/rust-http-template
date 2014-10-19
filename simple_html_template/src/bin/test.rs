@@ -10,14 +10,20 @@ html_template! hello_world {
     <head>
     </head>
     <body>
-        <% rust for _ in range(0,10u) { %>
-            hello world
-        <% rust } %>
+        <% rust out.push_str(body().as_slice()); %>
     </body>
 </html>
 
 <% end template %>
 
+/// generate the inside of <body>
+///
+///
+<% template body() %>
+    <% rust for _ in range(0,10u) { %>
+        hello world
+    <% rust } %>
+<%end template %>
 }
 
 

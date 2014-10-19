@@ -7,8 +7,9 @@ use syntax::ext::quote::rt::ToSource;
 use syntax::ext::quote::rt::ExtParseUtils;
 
 use html::HtmlState;
-use html::RawHtml;
-use html::RawRust;
+use template::Template;
+use template::RawHtml;
+use template::RawRust;
 
 /// Trait meaning something can be turned into an ast::Item with configuration.
 pub trait Generate<Cfg> {
@@ -21,8 +22,10 @@ pub trait Generate<Cfg> {
     ) -> P<ast::Item>;
 }
 
-
-impl Generate<()> for HtmlState {
+///
+///
+///
+impl Generate<()> for Template {
 
     fn generate(
         self,
@@ -31,71 +34,7 @@ impl Generate<()> for HtmlState {
         _: ()
     ) -> P<ast::Item> {
 
-        let skin = self.skin.clone().unwrap();
-
-        // because of the fact that <% rust %> can contains incomplete
-        // (for example  <% rust if true { %> it's true ! <%rust } %>
-        // code, we can't parse them directly, instead we need an
-        // intermdiate state in which we will recreate a block source code
-        // that we will parse as a last step
-        // we need a starting "{" and a final "}" to use block parser
-        let mut template_block_str = "{\n".to_string();
-
-        // we declare a "out" variable that will be used to contains the
-        // html output
-        // Note: we could have written directly in template_block_str
-        // without using quote_stmt! and "to_source", but it makes the code
-        // "cleaner" and will ease the transition if one day we find a better
-        // solution to not have to go through this second parsing step
-        // (maybe at least test if we have 0 <% rust %> tag, in which case
-        // we can directly use quote_stmt output
-        let expr = quote_stmt!(
-            cx,
-            let mut out = String::new();
-        );
-
-        template_block_str.push_str(expr.to_source().as_slice());
-        template_block_str.push('\n');
-
-        for stuff in self.sub_tags.iter() {
-            match *stuff {
-                // Raw html are added directly directly to "out"
-                RawHtml(ref x) => {
-
-                    let html_str = x.as_slice();
-                    let raw_html_expr = quote_stmt!(
-                        cx,
-                        out.push_str($html_str);
-                    );
-
-                    template_block_str.push_str(
-                        raw_html_expr.to_source().as_slice()
-                    );
-                    template_block_str.push('\n');
-                }
-                // Raw rust is added to the intermdiate source code
-                RawRust(ref x) => {
-                    template_block_str.push_str(x.as_slice());
-                    template_block_str.push('\n');
-                }
-            }
-        }
-
-        // we create the return statement
-        let return_expr = quote_stmt!(
-            cx,
-            return out;
-        );
-        template_block_str.push_str(return_expr.to_source().as_slice()); 
-
-        // we close the block
-        template_block_str.push_str("\n}");
-
-        // we parse the intermediate source code in order to extract out of
-        // it a block to use as the function's body
-        let tt = cx.parse_tts(template_block_str);        
-        let block = cx.new_parser_from_tts(tt.as_slice()).parse_block();
-
+        let block = generate_template_body(&self, cx);
 
         // we create the function itself
         let render_fn = ast::ItemFn(
@@ -139,9 +78,106 @@ impl Generate<()> for HtmlState {
             span: sp
         });
 
+        render_item
+    }
+}
+
+///
+///
+///
+impl Generate<()> for HtmlState {
+
+    fn generate(
+        self,
+        sp: codemap::Span,
+        cx: &mut base::ExtCtxt,
+        _: ()
+    ) -> P<ast::Item> {
+
+        let skin = self.skin.clone().unwrap();
+
+        let template_items = self.templates.into_iter().map(
+            |template| template.generate(sp, cx, ())
+        ).collect();
+
 
         // we create the module made of the created function
-        // TODO: allow the creation of several items
-        cx.item_mod(sp, sp, skin, vec![], vec![], vec![render_item])
+        cx.item_mod(sp, sp, skin, vec![], vec![], template_items)
     }
+}
+
+
+///
+///
+///
+fn generate_template_body (
+    template: &Template,
+    cx: &base::ExtCtxt
+) -> P<ast::Block> {
+
+    // because of the fact that <% rust %> can contains incomplete
+    // (for example  <% rust if true { %> it's true ! <%rust } %>
+    // code, we can't parse them directly, instead we need an
+    // intermdiate state in which we will recreate a block source code
+    // that we will parse as a last step
+    // we need a starting "{" and a final "}" to use block parser
+    let mut template_block_str = "{\n".to_string();
+
+    // we declare a "out" variable that will be used to contains the
+    // html output
+    // Note: we could have written directly in template_block_str
+    // without using quote_stmt! and "to_source", but it makes the code
+    // "cleaner" and will ease the transition if one day we find a better
+    // solution to not have to go through this second parsing step
+    // (maybe at least test if we have 0 <% rust %> tag, in which case
+    // we can directly use quote_stmt output
+    let expr = quote_stmt!(
+        cx,
+        let mut out = String::new();
+    );
+
+    template_block_str.push_str(expr.to_source().as_slice());
+    template_block_str.push('\n');
+
+    for stuff in template.sub_tags.iter() {
+        match *stuff {
+            // Raw html are added directly directly to "out"
+            RawHtml(ref x) => {
+
+                let html_str = x.as_slice();
+                let raw_html_expr = quote_stmt!(
+                    cx,
+                    out.push_str($html_str);
+                );
+
+                template_block_str.push_str(
+                    raw_html_expr.to_source().as_slice()
+                );
+                template_block_str.push('\n');
+            }
+            // Raw rust is added to the intermdiate source code
+            RawRust(ref x) => {
+                template_block_str.push_str(x.as_slice());
+                template_block_str.push('\n');
+            }
+        }
+    }
+
+    // we create the return statement
+    let return_expr = quote_stmt!(
+        cx,
+        return out;
+    );
+    template_block_str.push_str(return_expr.to_source().as_slice());
+    template_block_str.push('\n');
+
+    // we close the block
+    template_block_str.push('}');
+
+    // we parse the intermediate source code in order to extract out of
+    // it a block to use as the function's body
+    let tt = cx.parse_tts(template_block_str);
+
+    cx.new_parser_from_tts(tt.as_slice()).parse_block()
+
 }
