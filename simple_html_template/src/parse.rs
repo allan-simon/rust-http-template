@@ -83,23 +83,24 @@ fn parse_end_template(parser: &mut Parser) {
 ///
 ///
 ///
-fn is_template_tag_start (
-    parser: &Parser,
-    last_token: Option<token::Token>
+fn is_tag_start (
+    parser: &mut Parser
 ) -> bool {
 
-    if parser.token != token::BINOP(token::PERCENT) {
-        return false;
-    }
+    if parser.token == token::LT {
+        let next_is_percent = parser.look_ahead(
+            1,
+            |token| *token == token::BINOP(token::PERCENT)
+        );
 
-
-    match last_token {
-        None => return false,
-        Some(value) => {
-            return value == token::LT;
+        if next_is_percent {
+            //TODO: certainly a better way to do "consume < and %"
+            parser.bump();
+            parser.bump();
+            return true;
         }
     }
-
+    return false;
 }
 
 /// Extract as raw text the content between two spans
@@ -156,23 +157,18 @@ fn parse_inner_template (
 
     let mut sub_tags = Vec::new();
 
-    let mut last_token = None;
     // to know when we have a piece of HTML to display as it
     let mut start_html_block = parser.span.clone();
     let mut end_html_block = parser.span.clone();
 
     while parser.token != token::EOF {
-
-        if !is_template_tag_start(parser, last_token) {
+        if !is_tag_start(parser) {
             // we update endspan everytime as we're not sure
             // when a span will be the last one
             end_html_block = parser.span.clone();
-            last_token = Some(parser.token.clone());
             parser.bump();
             continue;
         }
-        last_token = Some(parser.token.clone());
-        parser.bump();
 
         // the beginning of a tag implies that the current raw html block
         // is finished
@@ -221,23 +217,13 @@ impl<'a, 'b> Parse<(
 
         let mut state = HtmlState::new(name);
 
-        println!("parser");
-
-        let mut last_token = None;
-
         while parser.token != token::EOF {
             
-            if !is_template_tag_start(parser, last_token) {
-                // we update endspan everytime as we're not sure
-                // when a span will be the last one
-                last_token = Some(parser.token.clone());
+            if !is_tag_start(parser) {
                 parser.bump();
                 continue;
             }
 
-            last_token = Some(parser.token.clone());
-            parser.bump();
-            //TODO handle token::LE (see how they've done for brain_fuck macro
             match parser.parse_ident().as_str() {
 
                 TEMPLATE => {
@@ -259,10 +245,8 @@ impl<'a, 'b> Parse<(
                 }
             }
 
-            last_token = Some(parser.token.clone());
             parser.bump();
         }
-
 
         state
     }
