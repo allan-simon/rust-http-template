@@ -8,7 +8,9 @@ use syntax::parse::token;
 use self::html::html_template;
 
 mod html;
+mod rust;
 mod parse;
+mod parse_utils;
 mod generate;
 
 #[plugin_registrar]

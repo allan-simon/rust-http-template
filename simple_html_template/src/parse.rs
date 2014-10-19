@@ -7,7 +7,11 @@ use syntax::parse::parser::Parser;
 use html::HtmlState;
 use html::SubTag;
 use html::RawHtml;
-use html::RawRust;
+
+use rust::parse_rust_tag;
+
+use parse_utils::block_to_string;
+use parse_utils::is_tag_start;
 
 /// Trait that means something can be parsed with a configuration.
 pub trait Parse<Cfg> {
@@ -78,75 +82,6 @@ fn parse_end_template(parser: &mut Parser) {
         }
     };
 
-}
-
-///
-///
-///
-fn is_tag_start (
-    parser: &mut Parser
-) -> bool {
-
-    if parser.token == token::LT {
-        let next_is_percent = parser.look_ahead(
-            1,
-            |token| *token == token::BINOP(token::PERCENT)
-        );
-
-        return next_is_percent;
-    }
-    return false;
-}
-
-/// Extract as raw text the content between two spans
-///
-fn block_to_string(
-    context: &base::ExtCtxt,
-    start_span: &codemap::Span,
-    end_span: &codemap::Span
-) -> String {
-
-
-    let tmp_span = codemap::Span {
-        lo: start_span.lo,
-        hi: end_span.lo,
-        expn_id: end_span.expn_id
-    };
-
-    context.codemap().span_to_snippet(tmp_span).unwrap_or(String::new())
-
-}
-
-/// Parse the inside of a orphan rust tag
-/// TODO: implement it, for the moment we simply "consume" the inside
-fn parse_rust_tag (
-    parser: &mut Parser,
-    context: &base::ExtCtxt
-) -> SubTag {
-
-    let start_rust_block = parser.span.clone();
-    while parser.token != token::EOF {
-
-        if parser.token == token::BINOP(token::PERCENT) {
-            if parser.look_ahead(1, |token| *token == token::GT) {
-
-                let inner_string = block_to_string(
-                    context,
-                    &start_rust_block,
-                    &parser.span
-                );
-
-                //TODO: certainly a better way to do "consume % and >"
-                parser.bump();
-                parser.bump();
-
-                return RawRust(inner_string);
-            }
-        }
-        parser.bump();
-    }
-
-    RawRust(String::new())
 }
 
 /// Parse the content inside a <% template xxx() %> tag
