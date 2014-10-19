@@ -93,12 +93,7 @@ fn is_tag_start (
             |token| *token == token::BINOP(token::PERCENT)
         );
 
-        if next_is_percent {
-            //TODO: certainly a better way to do "consume < and %"
-            parser.bump();
-            parser.bump();
-            return true;
-        }
+        return next_is_percent;
     }
     return false;
 }
@@ -159,13 +154,9 @@ fn parse_inner_template (
 
     // to know when we have a piece of HTML to display as it
     let mut start_html_block = parser.span.clone();
-    let mut end_html_block = parser.span.clone();
 
     while parser.token != token::EOF {
         if !is_tag_start(parser) {
-            // we update endspan everytime as we're not sure
-            // when a span will be the last one
-            end_html_block = parser.span.clone();
             parser.bump();
             continue;
         }
@@ -175,9 +166,13 @@ fn parse_inner_template (
         let inner_string = block_to_string(
             context,
             &start_html_block,
-            &end_html_block
+            &parser.span
         );
         sub_tags.push(RawHtml(inner_string));
+
+        //TODO: certainly a better way to do "consume < and %"
+        parser.bump();
+        parser.bump();
 
         match parser.parse_ident().as_str() {
             TEMPLATE => parser.fatal("<% template %> can't be nested"),
@@ -192,7 +187,6 @@ fn parse_inner_template (
 
         // we start a new raw html block
         start_html_block = parser.span.clone();
-        end_html_block = parser.span.clone();
     }
 
     parser.fatal("template tag opened but not closed");
@@ -223,6 +217,10 @@ impl<'a, 'b> Parse<(
                 parser.bump();
                 continue;
             }
+
+            //TODO: certainly a better way to do "consume < and %"
+            parser.bump();
+            parser.bump();
 
             match parser.parse_ident().as_str() {
 
