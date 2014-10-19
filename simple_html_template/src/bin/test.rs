@@ -10,7 +10,7 @@ html_template! hello_world {
     <head>
     </head>
     <body>
-        <% rust prout %>
+        <% rust prout tagada tagada %>
         hello world
     </body>
 </html>

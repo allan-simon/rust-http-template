@@ -5,6 +5,7 @@ use syntax::ext::build::AstBuilder;
 
 use html::HtmlState;
 use html::RawHtml;
+use html::RawRust;
 
 /// Trait meaning something can be turned into an ast::Item with configuration.
 pub trait Generate<Cfg> {
@@ -38,7 +39,7 @@ impl Generate<()> for HtmlState {
             for stuff in self.sub_tags.iter() {
                 match *stuff {
                     RawHtml(ref x) => string.push_str(x.as_slice()),
-                    _ => {},
+                    RawRust(ref x) => println!("ruuuuust {}", x),
                 }
             }
             string

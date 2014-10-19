@@ -124,15 +124,23 @@ fn parse_rust_tag (
     context: &base::ExtCtxt
 ) -> SubTag {
 
+    let start_rust_block = parser.span.clone();
     while parser.token != token::EOF {
 
         if parser.token == token::BINOP(token::PERCENT) {
             if parser.look_ahead(1, |token| *token == token::GT) {
 
+                let inner_string = block_to_string(
+                    context,
+                    &start_rust_block,
+                    &parser.span
+                );
+
                 //TODO: certainly a better way to do "consume % and >"
                 parser.bump();
                 parser.bump();
-                return RawRust(String::new());
+
+                return RawRust(inner_string);
             }
         }
         parser.bump();
