@@ -3,6 +3,9 @@ use syntax::{ast, ast_util, abi, codemap};
 use syntax::ext::base;
 use syntax::ext::build::AstBuilder;
 
+use syntax::ext::quote::rt::ToSource;
+use syntax::ext::quote::rt::ExtParseUtils;
+
 use html::HtmlState;
 use html::RawHtml;
 use html::RawRust;
@@ -30,26 +33,68 @@ impl Generate<()> for HtmlState {
 
         let skin = self.skin.clone().unwrap();
 
-        // we create the 'return' expression, it returns for the
-        // moment a static string based on the one computed during
-        // parsing phase
-        let inner_string = {
+        // because of the fact that <% rust %> can contains incomplete
+        // (for example  <% rust if true { %> it's true ! <%rust } %>
+        // code, we can't parse them directly, instead we need an
+        // intermdiate state in which we will recreate a block source code
+        // that we will parse as a last step
+        // we need a starting "{" and a final "}" to use block parser
+        let mut template_block_str = "{\n".to_string();
 
-            let mut string = String::new();
-            for stuff in self.sub_tags.iter() {
-                match *stuff {
-                    RawHtml(ref x) => string.push_str(x.as_slice()),
-                    RawRust(ref x) => println!("ruuuuust {}", x),
+        // we declare a "out" variable that will be used to contains the
+        // html output
+        // Note: we could have written directly in template_block_str
+        // without using quote_stmt! and "to_source", but it makes the code
+        // "cleaner" and will ease the transition if one day we find a better
+        // solution to not have to go through this second parsing step
+        // (maybe at least test if we have 0 <% rust %> tag, in which case
+        // we can directly use quote_stmt output
+        let expr = quote_stmt!(
+            cx,
+            let mut out = String::new();
+        );
+
+        template_block_str.push_str(expr.to_source().as_slice());
+        template_block_str.push('\n');
+
+        for stuff in self.sub_tags.iter() {
+            match *stuff {
+                // Raw html are added directly directly to "out"
+                RawHtml(ref x) => {
+
+                    let html_str = x.as_slice();
+                    let raw_html_expr = quote_stmt!(
+                        cx,
+                        out.push_str($html_str);
+                    );
+
+                    template_block_str.push_str(
+                        raw_html_expr.to_source().as_slice()
+                    );
+                    template_block_str.push('\n');
+                }
+                // Raw rust is added to the intermdiate source code
+                RawRust(ref x) => {
+                    template_block_str.push_str(x.as_slice());
+                    template_block_str.push('\n');
                 }
             }
-            string
-        };
-        let inner_string = inner_string.as_slice();
+        }
 
-        let expr = quote_expr!(
+        // we create the return statement
+        let return_expr = quote_stmt!(
             cx,
-            return $inner_string;
+            return out;
         );
+        template_block_str.push_str(return_expr.to_source().as_slice()); 
+
+        // we close the block
+        template_block_str.push_str("\n}");
+
+        // we parse the intermediate source code in order to extract out of
+        // it a block to use as the function's body
+        let tt = cx.parse_tts(template_block_str);        
+        let block = cx.new_parser_from_tts(tt.as_slice()).parse_block();
 
 
         // we create the function itself
@@ -59,8 +104,8 @@ impl Generate<()> for HtmlState {
             cx.fn_decl(
                 // Takes no arguments
                 vec![],
-                // returns a static string
-                quote_ty!(cx, &'static str)
+                // returns a String
+                quote_ty!(cx, String)
             ),
 
             // All the usual types.
@@ -71,7 +116,7 @@ impl Generate<()> for HtmlState {
             // Add the body of the function.
             // which is made of only one expr
             // hence the call to block_expr
-            cx.block_expr(expr)
+            block
         );
 
         // and now we transform the function into an

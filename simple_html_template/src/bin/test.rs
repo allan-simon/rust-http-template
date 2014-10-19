@@ -10,8 +10,9 @@ html_template! hello_world {
     <head>
     </head>
     <body>
-        <% rust prout tagada tagada %>
-        hello world
+        <% rust for _ in range(0,10u) { %>
+            hello world
+        <% rust } %>
     </body>
 </html>
 
