@@ -20,7 +20,8 @@ pub struct HtmlState {
 ///
 #[deriving(Clone)]
 pub enum SubTag {
-    RawHtml(String)
+    RawHtml(String),
+    RawRust(String)
 }
 
 ///

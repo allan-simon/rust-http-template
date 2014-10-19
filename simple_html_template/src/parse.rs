@@ -7,6 +7,7 @@ use syntax::parse::parser::Parser;
 use html::HtmlState;
 use html::SubTag;
 use html::RawHtml;
+use html::RawRust;
 
 /// Trait that means something can be parsed with a configuration.
 pub trait Parse<Cfg> {
@@ -15,8 +16,11 @@ pub trait Parse<Cfg> {
 }
 
 const TEMPLATE:      &'static str = "template";
+const RUST:          &'static str = "rust";
 const END:           &'static str = "end";
 
+///
+///
 ///
 fn parse_start_template(state: &mut HtmlState, parser: &mut Parser) {
 
@@ -117,6 +121,30 @@ fn block_to_string(
 
 }
 
+/// Parse the inside of a orphan rust tag
+/// TODO: implement it, for the moment we simply "consume" the inside
+fn parse_rust_tag (
+    parser: &mut Parser,
+    context: &base::ExtCtxt
+) -> SubTag {
+
+    while parser.token != token::EOF {
+
+        if parser.token == token::BINOP(token::PERCENT) {
+            if parser.look_ahead(1, |token| *token == token::GT) {
+
+                //TODO: certainly a better way to do "consume % and >"
+                parser.bump();
+                parser.bump();
+                return RawRust(String::new());
+            }
+        }
+        parser.bump();
+    }
+
+    RawRust(String::new())
+}
+
 /// Parse the content inside a <% template xxx() %> tag
 /// and return when we've finished to parse the <% end template %>
 /// if we have parsed all tokens without seeing <% end template %>
@@ -143,30 +171,32 @@ fn parse_inner_template (
             parser.bump();
             continue;
         }
-        // we consider that what we have after a <% template %>
-        // is certainly html
-        //start_html_block = parser.span.clone();
         last_token = Some(parser.token.clone());
         parser.bump();
 
-        //TODO handle token::LE (see how they've done for brain_fuck macro
+        // the beginning of a tag implies that the current raw html block
+        // is finished
+        let inner_string = block_to_string(
+            context,
+            &start_html_block,
+            &end_html_block
+        );
+        sub_tags.push(RawHtml(inner_string));
+
         match parser.parse_ident().as_str() {
-            TEMPLATE => {
-                parser.fatal("<% template %> can't be nested");
-            }
+            TEMPLATE => parser.fatal("<% template %> can't be nested"),
+            RUST => sub_tags.push(parse_rust_tag(parser, context)),
             END => {
                 parse_end_template(parser);
-                println!("start {} , end {}", start_html_block, end_html_block);
-                let inner_string = block_to_string(
-                    context,
-                    &start_html_block,
-                    &end_html_block
-                );
-                sub_tags.push(RawHtml(inner_string));
                 return sub_tags;
-            }
-            _ => { println!("ignored stuff");}
+
+            },
+            _ => parser.fatal("unknown tag"),
         }
+
+        // we start a new raw html block
+        start_html_block = parser.span.clone();
+        end_html_block = parser.span.clone();
     }
 
     parser.fatal("template tag opened but not closed");

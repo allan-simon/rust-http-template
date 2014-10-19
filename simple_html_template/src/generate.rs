@@ -34,14 +34,16 @@ impl Generate<()> for HtmlState {
         // parsing phase
         let inner_string = {
 
-            let mut string = "";
+            let mut string = String::new();
             for stuff in self.sub_tags.iter() {
                 match *stuff {
-                   RawHtml(ref x) => string = x.as_slice()
+                    RawHtml(ref x) => string.push_str(x.as_slice()),
+                    _ => {},
                 }
             }
             string
         };
+        let inner_string = inner_string.as_slice();
 
         let expr = quote_expr!(
             cx,
