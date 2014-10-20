@@ -1,4 +1,5 @@
 use syntax::ast;
+use syntax::ptr::P;
 
 /// Define a HTML Template, i.e a piece of html
 /// with other tags inside it
@@ -25,7 +26,8 @@ impl Template {
 #[deriving(Clone)]
 pub enum SubTag {
     RawHtml(String),
-    RawRust(String)
+    RawRust(String),
+    Include(P<ast::Expr>)
 }
 
 

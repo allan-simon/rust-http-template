@@ -10,7 +10,10 @@ html_template! hello_world {
     <head>
     </head>
     <body>
+        This :
         <% rust out.push_str(body().as_slice()); %>
+        Is equivalent to that
+        <% include body() %>
     </body>
 </html>
 

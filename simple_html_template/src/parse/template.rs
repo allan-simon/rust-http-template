@@ -6,10 +6,12 @@ use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
 
 use parse::rust::parse_rust_tag;
+use parse::include::parse_include_tag;
 
 use tags::TEMPLATE;
 use tags::RUST;
 use tags::END;
+use tags::INCLUDE;
 
 use tags::template::Template;
 use tags::template::SubTag;
@@ -128,6 +130,7 @@ fn parse_inner_template (
         match parser.parse_ident().as_str() {
             TEMPLATE => parser.fatal("<% template %> can't be nested"),
             RUST => sub_tags.push(parse_rust_tag(parser, context)),
+            INCLUDE => sub_tags.push(parse_include_tag(parser)),
             END => {
                 return sub_tags;
 

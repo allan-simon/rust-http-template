@@ -17,6 +17,7 @@ use tags::END;
 
 pub mod template;
 pub mod rust;
+pub mod include;
 
 /// Trait that means something can be parsed with a configuration.
 pub trait Parse<Cfg> {

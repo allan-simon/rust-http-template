@@ -11,6 +11,7 @@ use generate::Generate;
 use tags::template::Template;
 use tags::template::RawHtml;
 use tags::template::RawRust;
+use tags::template::Include;
 
 ///
 ///
@@ -124,6 +125,22 @@ fn generate_template_body (
             RawRust(ref x) => {
                 template_block_str.push_str(x.as_slice());
                 template_block_str.push('\n');
+            },
+            // we put call to other template or function
+            // the return value of which is added to the output
+            // buffer
+            Include(ref call_expr) => {
+
+                let include_call = quote_stmt!(
+                    cx,
+                    out.push_str($call_expr.as_slice());
+                );
+
+                template_block_str.push_str(
+                    include_call.to_source().as_slice()
+                );
+                template_block_str.push('\n');
+
             }
         }
     }
