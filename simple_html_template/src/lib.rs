@@ -8,8 +8,6 @@ use syntax::parse::token;
 use self::html::html_template;
 
 mod html;
-mod rust;
-mod template;
 
 mod tags;
 mod parse;

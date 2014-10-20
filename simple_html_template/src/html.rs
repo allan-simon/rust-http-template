@@ -5,7 +5,7 @@ use syntax::ext::base::ExtCtxt;
 
 use generate::Generate;
 
-use template::Template;
+use tags::template::Template;
 
 /// Defines the state of a `html_template!` macro as it is parsing.
 ///

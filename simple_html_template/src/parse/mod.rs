@@ -1,3 +1,4 @@
+
 use syntax::ast;
 use syntax::codemap;
 use syntax::ext::base;
@@ -6,13 +7,16 @@ use syntax::parse::parser::Parser;
 
 use html::HtmlState;
 
-use template::parse_template_tag;
+use self::template::parse_template_tag;
 
-use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
 
 use tags::TEMPLATE;
 use tags::END;
+
+
+pub mod template;
+pub mod rust;
 
 /// Trait that means something can be parsed with a configuration.
 pub trait Parse<Cfg> {

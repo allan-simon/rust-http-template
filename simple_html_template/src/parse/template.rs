@@ -1,48 +1,19 @@
 use syntax::parse::token;
 use syntax::parse::parser::Parser;
 use syntax::ext::base;
-use syntax::ast;
 
 use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
 
-use rust::parse_rust_tag;
+use parse::rust::parse_rust_tag;
 
 use tags::TEMPLATE;
 use tags::RUST;
 use tags::END;
 
-
-//TODO factorize
-
-/// Define a HTML Template, i.e a piece of html
-/// with other tags inside it
-///
-#[deriving(Clone)]
-pub struct Template {
-    pub name: Option<ast::Ident>,
-    pub sub_tags: Vec<SubTag>
-}
-
-/// Create a new template
-impl Template {
-    pub fn new() -> Template {
-        Template {
-            name: None,
-            sub_tags: Vec::new()
-        }
-    }
-}
-
-/// Defines the things we can put inside a <% template %>
-///
-///
-#[deriving(Clone)]
-pub enum SubTag {
-    RawHtml(String),
-    RawRust(String)
-}
-
+use tags::template::Template;
+use tags::template::SubTag;
+use tags::template::RawHtml;
 ///
 ///
 ///
