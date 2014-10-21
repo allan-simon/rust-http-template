@@ -17,7 +17,10 @@ pub fn parse_rust_tag (
 
     let start_rust_block = parser.span.clone();
     while parser.token != token::EOF {
-
+        //TODO need to handle the following error case
+        //  <% rust blabla       <% another tag %>
+        //                  ^
+        //                  %> is missing
         if parser.token == token::BINOP(token::PERCENT) {
             if parser.look_ahead(1, |token| *token == token::GT) {
 
@@ -37,7 +40,7 @@ pub fn parse_rust_tag (
         parser.bump();
     }
 
-    RawRust(String::new())
+    parser.fatal("`rust` tag open but not closed");
 }
 
 
