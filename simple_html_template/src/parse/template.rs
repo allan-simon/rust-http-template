@@ -7,9 +7,11 @@ use parse_utils::is_tag_start;
 
 use parse::rust::parse_rust_tag;
 use parse::include::parse_include_tag;
+use parse::print::parse_print_tag;
 
 use tags::TEMPLATE;
 use tags::RUST;
+use tags::PRINT;
 use tags::END;
 use tags::INCLUDE;
 
@@ -110,6 +112,7 @@ fn parse_inner_template (
     let mut start_html_block = parser.span.clone();
 
     while parser.token != token::EOF {
+        // TODO handle <%= (%= is interpreted as one token)
         if !is_tag_start(parser) {
             parser.bump();
             continue;
@@ -128,10 +131,14 @@ fn parse_inner_template (
         parser.bump();
         parser.bump();
 
-        match parser.parse_ident().as_str() {
+
+        let tag_name = parser.bump_and_get();
+        println!("{}", Parser::token_to_string(&tag_name));
+        match Parser::token_to_string(&tag_name).as_slice() {
             TEMPLATE => parser.fatal("<% template %> can't be nested"),
             RUST => sub_tags.push(parse_rust_tag(parser, context)),
             INCLUDE => sub_tags.push(parse_include_tag(parser)),
+            PRINT => sub_tags.push(parse_print_tag(parser)),
             END => {
                 return sub_tags;
 

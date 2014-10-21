@@ -29,7 +29,8 @@ impl Template {
 pub enum SubTag {
     RawHtml(String),
     RawRust(String),
-    Include(P<ast::Expr>)
+    Include(P<ast::Expr>),
+    Print(ast::Ident)
 }
 
 

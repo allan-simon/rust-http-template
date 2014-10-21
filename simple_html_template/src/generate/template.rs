@@ -11,6 +11,7 @@ use generate::Generate;
 use tags::template::Template;
 use tags::template::RawHtml;
 use tags::template::RawRust;
+use tags::template::Print;
 use tags::template::Include;
 
 ///
@@ -26,8 +27,10 @@ impl Generate<()> for Template {
     ) -> P<ast::Item> {
 
 
+        let fn_name_ident = self.name.unwrap().clone();
+        let fn_name = fn_name_ident.as_str();
         let fn_decl = generate_template_head(&self, cx);
-        let block = generate_template_body(&self, cx);
+        let block = generate_template_body(self, cx);
 
         // we create the function itself
         let render_fn = ast::ItemFn(
@@ -48,9 +51,7 @@ impl Generate<()> for Template {
         let render_item = P(ast::Item {
             // TODO hardcoded, we should replace render
             // by the xxx coming from <% template xxx() %>
-            ident: cx.ident_of(
-                self.name.unwrap().as_str()
-            ),
+            ident: cx.ident_of(fn_name),
             // note: attrs here are all the #[], not to be confused
             // with the function arguments
             attrs: vec![],
@@ -75,11 +76,10 @@ fn generate_template_head (
     cx: &base::ExtCtxt
 ) -> P<ast::FnDecl> {
 
-    // Note: we can't use the commented code below because self.inputs
-    // contains identifier coming from the macro itself, as the block is
-    // not generated from the macro itself but an intermediate code,
-    // the identifier in the function block though having the same name
-    //  as the parameters, will be considered by the compiler
+    // Note: we can't use the commented code below because self.inputs contains
+    // identifier coming from the macro itself, as the block is not generated from
+    // the macro itself but an intermediate code, the identifier in the function block
+    // though having the same name as the parameters, will be considered by the compiler
     // as being different (because of Macro hygiene stuff
     //let mut fn_decl = cx.fn_decl(
     //    // Takes arguments found in template declaration
@@ -108,7 +108,7 @@ fn generate_template_head (
 ///
 ///
 fn generate_template_body (
-    template: &Template,
+    template: Template,
     cx: &base::ExtCtxt
 ) -> P<ast::Block> {
 
@@ -136,10 +136,10 @@ fn generate_template_body (
     template_block_str.push_str(expr.to_source().as_slice());
     template_block_str.push('\n');
 
-    for stuff in template.sub_tags.iter() {
-        match *stuff {
+    for stuff in template.sub_tags.into_iter() {
+        let expr = match stuff {
             // Raw html are added directly directly to "out"
-            RawHtml(ref x) => {
+            RawHtml(x) => {
 
                 let html_str = x.as_slice();
                 let raw_html_expr = quote_stmt!(
@@ -147,33 +147,38 @@ fn generate_template_body (
                     out.push_str($html_str);
                 );
 
-                template_block_str.push_str(
-                    raw_html_expr.to_source().as_slice()
-                );
-                template_block_str.push('\n');
+                raw_html_expr.to_source()
             }
             // Raw rust is added to the intermdiate source code
-            RawRust(ref x) => {
-                template_block_str.push_str(x.as_slice());
-                template_block_str.push('\n');
+            RawRust(x) => x ,
+            //
+            Print(x) => {
+
+                let print = quote_stmt!(
+                    cx,
+                    out.push_str($x.to_string().as_slice());
+                );
+
+                print.to_source()
+
             },
             // we put call to other template or function
             // the return value of which is added to the output
             // buffer
-            Include(ref call_expr) => {
+            Include(call_expr) => {
 
                 let include_call = quote_stmt!(
                     cx,
                     out.push_str($call_expr.as_slice());
                 );
 
-                template_block_str.push_str(
-                    include_call.to_source().as_slice()
-                );
-                template_block_str.push('\n');
+                include_call.to_source()
 
             }
-        }
+        };
+
+        template_block_str.push_str(expr.as_slice());
+        template_block_str.push('\n');
     }
 
     // we create the return statement

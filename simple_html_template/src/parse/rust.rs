@@ -9,7 +9,6 @@ use tags::template::RawRust;
 use parse_utils::block_to_string;
 
 /// Parse the inside of a orphan rust tag
-/// TODO: implement it, for the moment we simply "consume" the inside
 pub fn parse_rust_tag (
     parser: &mut Parser,
     context: &base::ExtCtxt
