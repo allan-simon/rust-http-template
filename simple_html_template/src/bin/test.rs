@@ -11,9 +11,9 @@ html_template! hello_world {
     </head>
     <body>
         This :
-        <% rust out.push_str(body().as_slice()); %>
+        <% rust out.push_str(body(5).as_slice()); %>
         Is equivalent to that
-        <% include body() %>
+        <% include body(5) %>
     </body>
 </html>
 
@@ -22,8 +22,8 @@ html_template! hello_world {
 /// generate the inside of <body>
 ///
 ///
-<% template body() %>
-    <% rust for _ in range(0,10u) { %>
+<% template body(number: uint) %>
+    <% rust for _ in range(0, number) { %>
         hello world
     <% rust } %>
 <%end template %>

@@ -46,11 +46,12 @@ fn parse_start_template(state: &mut Template, parser: &mut Parser) {
     ) {
         (
             functioname,
-            ref function,
+            ref function_decl,
             token::BINOP(token::PERCENT),
             token::GT
         ) => {
             state.name = Some(functioname);
+            state.inputs = function_decl.inputs.clone();
             println!("found template beginning")
         },
 

@@ -7,6 +7,7 @@ use syntax::ptr::P;
 #[deriving(Clone)]
 pub struct Template {
     pub name: Option<ast::Ident>,
+    pub inputs: Vec<ast::Arg>,
     pub sub_tags: Vec<SubTag>
 }
 
@@ -15,6 +16,7 @@ impl Template {
     pub fn new() -> Template {
         Template {
             name: None,
+            inputs: Vec::new(),
             sub_tags: Vec::new()
         }
     }

@@ -25,18 +25,13 @@ impl Generate<()> for Template {
         _: ()
     ) -> P<ast::Item> {
 
+
+        let fn_decl = generate_template_head(&self, cx);
         let block = generate_template_body(&self, cx);
 
         // we create the function itself
         let render_fn = ast::ItemFn(
-            //TODO: we should be able to take it
-            //directly from the parsing phase
-            cx.fn_decl(
-                // Takes no arguments
-                vec![],
-                // returns a String
-                quote_ty!(cx, String)
-            ),
+            fn_decl,
 
             // All the usual types.
             ast::NormalFn,
@@ -44,8 +39,6 @@ impl Generate<()> for Template {
             ast_util::empty_generics(),
 
             // Add the body of the function.
-            // which is made of only one expr
-            // hence the call to block_expr
             block
         );
 
@@ -71,6 +64,44 @@ impl Generate<()> for Template {
 
         render_item
     }
+}
+
+
+///
+///
+///
+fn generate_template_head (
+    template: &Template,
+    cx: &base::ExtCtxt
+) -> P<ast::FnDecl> {
+
+    // Note: we can't use the commented code below because self.inputs
+    // contains identifier coming from the macro itself, as the block is
+    // not generated from the macro itself but an intermediate code,
+    // the identifier in the function block though having the same name
+    //  as the parameters, will be considered by the compiler
+    // as being different (because of Macro hygiene stuff
+    //let mut fn_decl = cx.fn_decl(
+    //    // Takes arguments found in template declaration
+    //    self.inputs.clone(),
+    //    // we force returns value to String
+    //    quote_ty!(cx, String)
+    //);
+
+    let mut first = true;
+    let mut fun_decl_str = "(".to_string();
+
+    for arg in template.inputs.iter() {
+        if first { first = false; } else { fun_decl_str.push(','); }
+        fun_decl_str.push_str(arg.to_source().as_slice());
+    }
+
+    fun_decl_str.push(')');
+    fun_decl_str.push_str(" -> String");
+
+    let tt = cx.parse_tts(fun_decl_str);
+
+    cx.new_parser_from_tts(tt.as_slice()).parse_fn_decl(false)
 }
 
 ///
