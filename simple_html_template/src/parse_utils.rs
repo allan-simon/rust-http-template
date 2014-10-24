@@ -16,9 +16,44 @@ pub fn is_tag_start (
             |token| *token == token::BINOP(token::PERCENT)
         );
 
-        return next_is_percent;
+        if (next_is_percent) {
+            return true;
+        }
+
+        // we consider <%= as being a starting tag
+        // we will take care of splitting "%=" into "%" and "="
+        // in the 'eat_tag_start' function
+        let next_is_percent_equal = parser.look_ahead(
+            1,
+            |token| *token == token::BINOPEQ(token::PERCENT)
+        );
+
+
+        return next_is_percent_equal;
+
     }
     return false;
+}
+
+/// consume the <% of a tag, and handle corner case
+/// for example <%= which is normally < and %=, it will leave
+/// the '='
+pub fn eat_tag_start (
+    parser: &mut Parser
+) {
+
+    // we 'eat' the <
+    parser.bump();
+
+    // if we have %= , we replace by = (which is like 'eating
+    // the %)
+    if parser.token == token::BINOPEQ(token::PERCENT) {
+        let span = parser.span;
+        let lo = span.lo + codemap::BytePos(1);
+        parser.replace_token(token::EQ, lo, span.hi);
+    } else {
+        parser.bump();
+    }
 }
 
 /// Extract as raw text the content between two spans

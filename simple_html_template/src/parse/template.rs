@@ -4,6 +4,7 @@ use syntax::ext::base;
 
 use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
+use parse_utils::eat_tag_start;
 
 use parse::rust::parse_rust_tag;
 use parse::include::parse_include_tag;
@@ -112,7 +113,7 @@ fn parse_inner_template (
     let mut start_html_block = parser.span.clone();
 
     while parser.token != token::EOF {
-        // TODO handle <%= (%= is interpreted as one token)
+
         if !is_tag_start(parser) {
             parser.bump();
             continue;
@@ -127,9 +128,7 @@ fn parse_inner_template (
         );
         sub_tags.push(RawHtml(inner_string));
 
-        //TODO: certainly a better way to do "consume < and %"
-        parser.bump();
-        parser.bump();
+        eat_tag_start(parser);
 
 
         let tag_name = parser.bump_and_get();

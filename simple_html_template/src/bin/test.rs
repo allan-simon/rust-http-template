@@ -24,7 +24,7 @@ html_template! hello_world {
 ///
 <% template body(number: uint) %>
     <% rust for _ in range(0, number) { %>
-        hello world <% = number %>
+        hello world <%= number %>
 
     <% rust } %>
 <%end template %>
