@@ -1,7 +1,7 @@
 use syntax::ext::tt::transcribe::TtReader;
 use syntax::parse::lexer;
-
 use syntax::parse::token;
+use syntax::codemap;
 
 /// This reader is no more than a wrapper around TtReader to handle
 /// "%>" as one token
@@ -47,7 +47,10 @@ impl<'a> lexer::Reader for HtmlTemplateReader<'a> {
                     token::GT => {
                         return lexer::TokenAndSpan {
                             tok: token::EOF,
-                            sp: next_token.sp
+                            sp: codemap::mk_sp(
+                                token.sp.lo,
+                                next_token.sp.hi
+                            )
                         };
                     }
                     _ => self.buffered = Some(next_token)
