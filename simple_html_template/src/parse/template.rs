@@ -44,27 +44,24 @@ fn parse_start_template(state: &mut Template, parser: &mut Parser) {
     match (
         parser.parse_ident(),
         parser.parse_fn_decl(true),
-        parser.bump_and_get(),
         parser.bump_and_get()
     ) {
         (
             functioname,
             ref function_decl,
-            token::BINOP(token::PERCENT),
-            token::GT
+            token::EOF,
         ) => {
             state.name = Some(functioname);
             state.inputs = function_decl.inputs.clone();
             println!("found template beginning")
         },
 
-        (one, two, three, four) => {
+        (one, two, three) => {
             parser.fatal(format!(
-                "Expected `<% template xxx() %>`, found <% template {} {} {}{}",
+                "Expected `<% template xxx() %>`, found <% template {} {} {}",
                 one,
                 two,
-                three,
-                four
+                three
             ).as_slice());
         }
     };
@@ -77,21 +74,18 @@ fn parse_end_template(parser: &mut Parser) {
 
     match (
         parser.parse_ident().as_str(),
-        parser.bump_and_get(),
         parser.bump_and_get()
     ) {
         (
             template,
-            token::BINOP(token::PERCENT),
-            token::GT
+            token::EOF
         ) if template == TEMPLATE => { println!("found end template")},
 
-        (one, two, three) => {
+        (one, two) => {
             parser.fatal(format!(
-                "Expected `<% end template %>`, found <% end {} {}{}",
+                "Expected `<% end template %>`, found <% end {} {}",
                 one,
-                Parser::token_to_string(&two),
-                Parser::token_to_string(&three),
+                Parser::token_to_string(&two)
             ).as_slice());
         }
     };
@@ -129,6 +123,7 @@ fn parse_inner_template (
         sub_tags.push(RawHtml(inner_string));
 
         eat_tag_start(parser);
+        //TODO: certainly a better way to do "consume '<%' "
 
 
         let tag_name = parser.bump_and_get();

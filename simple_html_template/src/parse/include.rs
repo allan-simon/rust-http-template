@@ -22,16 +22,11 @@ pub fn parse_include_tag (
     }
 
     // common with <% rust %> tag
-    if parser.token == token::BINOP(token::PERCENT) {
-        if parser.look_ahead(1, |token| *token == token::GT) {
+    if parser.token == token::EOF {
+        // find a better way to consume %>
+        parser.bump();
 
-            // find a better way to consume %>
-            parser.bump();
-            parser.bump();
-
-            return Include(call_expr);
-        }
+        return Include(call_expr);
     }
-
     parser.fatal("`include` tag open but not closed");
 }

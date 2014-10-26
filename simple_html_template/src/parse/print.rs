@@ -14,15 +14,11 @@ pub fn parse_print_tag (
 ) -> SubTag {
 
     let ident = parser.parse_ident();
-    if parser.token == token::BINOP(token::PERCENT) {
-        if parser.look_ahead(1, |token| *token == token::GT) {
+    if parser.token == token::EOF {
+        //TODO: certainly a better way to do "consume '%>'"
+        parser.bump();
 
-            //TODO: certainly a better way to do "consume % and >"
-            parser.bump();
-            parser.bump();
-
-            return Print(ident);
-        }
+        return Print(ident);
     }
 
     parser.fatal("`<%= %>` tag open but not closed");

@@ -33,14 +33,13 @@ impl Generate<()> for HtmlState {
         _: ()
     ) -> P<ast::Item> {
 
-        let skin = self.skin.clone().unwrap();
+        let skin = self.skin;
 
         let template_items = self.templates.into_iter().map(
             |template| template.generate(sp, cx, ())
         ).collect();
 
-
-        // we create the module made of the created function
+        // we create the module made of the created functions
         cx.item_mod(sp, sp, skin, vec![], vec![], template_items)
     }
 }

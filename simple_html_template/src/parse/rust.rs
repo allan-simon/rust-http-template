@@ -15,31 +15,26 @@ pub fn parse_rust_tag (
 ) -> SubTag {
 
     let start_rust_block = parser.span.clone();
+    //TODO need to handle the following error case
+    //  <% rust blabla       <% another tag %>
+    //                  ^
+    //                  %> is missing
+
+
     while parser.token != token::EOF {
-        //TODO need to handle the following error case
-        //  <% rust blabla       <% another tag %>
-        //                  ^
-        //                  %> is missing
-        if parser.token == token::BINOP(token::PERCENT) {
-            if parser.look_ahead(1, |token| *token == token::GT) {
-
-                let inner_string = block_to_string(
-                    context,
-                    &start_rust_block,
-                    &parser.span
-                );
-                
-                //TODO: certainly a better way to do "consume % and >"
-                parser.bump();
-                parser.bump();
-
-                return RawRust(inner_string);
-            }
-        }
         parser.bump();
     }
+    let inner_string = block_to_string(
+        context,
+        &start_rust_block,
+        &parser.span
+    );
+    
+    //TODO: certainly a better way to do "consume '%>' "
+    parser.bump();
 
-    parser.fatal("`rust` tag open but not closed");
+    return RawRust(inner_string);
+
 }
 
 

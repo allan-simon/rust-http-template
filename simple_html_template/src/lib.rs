@@ -13,6 +13,7 @@ mod tags;
 mod parse;
 mod parse_utils;
 mod generate;
+mod reader;
 
 #[plugin_registrar]
 #[doc(hidden)]
