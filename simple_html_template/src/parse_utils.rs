@@ -3,6 +3,15 @@ use syntax::codemap;
 use syntax::parse::token;
 use syntax::ext::base;
 
+/// check if the current token read by the parser is a end of tag
+/// i.e "%>", we encapsulate that to hide the dirty trick we have
+/// to represent our custom "%>" token by the EOF token
+pub fn is_tag_end (
+    parser: &Parser
+) -> bool {
+    parser.token == token::EOF && !parser.reader.is_eof()
+}
+
 ///
 ///
 ///

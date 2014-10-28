@@ -5,6 +5,8 @@ use syntax::ast;
 use tags::template::SubTag;
 use tags::template::Include;
 
+use parse_utils::is_tag_end;
+
 /// Parse the inside of a orphan rust tag
 /// TODO: implement it, for the moment we simply "consume" the inside
 pub fn parse_include_tag (
@@ -22,11 +24,13 @@ pub fn parse_include_tag (
     }
 
     // common with <% rust %> tag
-    if parser.token == token::EOF {
-        // find a better way to consume %>
-        parser.bump();
-
-        return Include(call_expr);
+    // if we got an EOF which the actual end of file
+    if !is_tag_end(parser) {
+        parser.fatal("`include` tag open but not closed");
     }
-    parser.fatal("`include` tag open but not closed");
+    // find a better way to consume %>
+    parser.bump();
+
+    Include(call_expr)
+ 
 }

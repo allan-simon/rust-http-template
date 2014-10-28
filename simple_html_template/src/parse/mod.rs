@@ -38,7 +38,7 @@ pub fn parse<'a>(
 
     let mut state = HtmlState::new(name);
 
-    while parser.token != token::EOF {
+    while !parser.reader.is_eof() {
 
         if !is_tag_start(&mut parser) {
             parser.bump();

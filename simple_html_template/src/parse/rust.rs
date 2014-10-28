@@ -24,6 +24,13 @@ pub fn parse_rust_tag (
     while parser.token != token::EOF {
         parser.bump();
     }
+
+    // if the EOF is the real enf of file and not our %>
+    // we have a syntax error
+    if (parser.reader.is_eof()) {
+        parser.fatal("`rust` tag open but not closed");
+    }
+
     let inner_string = block_to_string(
         context,
         &start_rust_block,

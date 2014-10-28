@@ -1,20 +1,28 @@
 use syntax::ext::tt::transcribe::TtReader;
 use syntax::parse::lexer;
+use syntax::parse::lexer::Reader;
 use syntax::parse::token;
 use syntax::codemap;
 
 /// This reader is no more than a wrapper around TtReader to handle
 /// "%>" as one token
 pub struct HtmlTemplateReader<'a> {
-    pub reader : TtReader<'a>,
-    pub buffered: Option<lexer::TokenAndSpan>
+    reader : TtReader<'a>,
+    buffered: Option<lexer::TokenAndSpan>,
+    current: lexer::TokenAndSpan,
+    // to differiante current containing EOF because
+    // we have %> and EOF because it's actually the end of file
+    is_fake_eof: bool
 }
 
 impl<'a> HtmlTemplateReader<'a> {
     pub fn new<'a>(reader: TtReader<'a>) -> HtmlTemplateReader<'a> {
+        let current = reader.peek();
         HtmlTemplateReader {
             reader: reader,
-            buffered: None
+            buffered: None,
+            current: current,
+            is_fake_eof: false
         }
     }
 }
@@ -23,13 +31,19 @@ impl<'a> HtmlTemplateReader<'a> {
 /// we delegate everything to the TtReader
 impl<'a> lexer::Reader for HtmlTemplateReader<'a> {
 
-    fn is_eof(&self) -> bool { self.reader.is_eof() }
+    fn is_eof(&self) -> bool {
+        self.current.tok == token::EOF && self.is_fake_eof == false
+    }
     fn fatal(&self, string: &str) -> ! { self.reader.fatal(string) }
     fn err(&self, string: &str) { self.reader.err(string) }
-    fn peek(&self) -> lexer::TokenAndSpan { self.reader.peek()}
+    fn peek(&self) -> lexer::TokenAndSpan { self.current.clone() }
 
     fn next_token(&mut self) -> lexer::TokenAndSpan {
 
+        self.is_fake_eof = false;
+
+        // if we have something in the buffer, we consume it
+        // without requesting a token to underlying reader
         let buffered = self.buffered.take();
         match buffered {
             Some(x) => {
@@ -45,6 +59,7 @@ impl<'a> lexer::Reader for HtmlTemplateReader<'a> {
                 let next_token  = self.reader.next_token(); 
                 match next_token.tok {
                     token::GT => {
+                        self.is_fake_eof = true;
                         return lexer::TokenAndSpan {
                             tok: token::EOF,
                             sp: codemap::mk_sp(
@@ -59,6 +74,8 @@ impl<'a> lexer::Reader for HtmlTemplateReader<'a> {
             }
             _ => ()
         };
+
+        self.current = token.clone();
         
         token
     }

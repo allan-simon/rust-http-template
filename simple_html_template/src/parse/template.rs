@@ -5,6 +5,7 @@ use syntax::ext::base;
 use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
 use parse_utils::eat_tag_start;
+use parse_utils::is_tag_end;
 
 use parse::rust::parse_rust_tag;
 use parse::include::parse_include_tag;
@@ -19,6 +20,7 @@ use tags::INCLUDE;
 use tags::template::Template;
 use tags::template::SubTag;
 use tags::template::RawHtml;
+
 ///
 ///
 ///
@@ -44,13 +46,15 @@ fn parse_start_template(state: &mut Template, parser: &mut Parser) {
     match (
         parser.parse_ident(),
         parser.parse_fn_decl(true),
-        parser.bump_and_get()
+        // we can't use bump_and_get, as it, get AND THEN bump
+        // which mean that is_tag_end would have tested the token AFTER
+        parser.token.clone()
     ) {
         (
             functioname,
             ref function_decl,
             token::EOF,
-        ) => {
+        ) if is_tag_end(parser)  => {
             state.name = Some(functioname);
             state.inputs = function_decl.inputs.clone();
             println!("found template beginning")
@@ -65,6 +69,7 @@ fn parse_start_template(state: &mut Template, parser: &mut Parser) {
             ).as_slice());
         }
     };
+    parser.bump();
 }
 
 ///
@@ -74,12 +79,15 @@ fn parse_end_template(parser: &mut Parser) {
 
     match (
         parser.parse_ident().as_str(),
-        parser.bump_and_get()
+        parser.token.clone()
     ) {
         (
             template,
             token::EOF
-        ) if template == TEMPLATE => { println!("found end template")},
+        ) if
+            template == TEMPLATE &&
+            is_tag_end(parser)
+         => { println!("found end template")},
 
         (one, two) => {
             parser.fatal(format!(
@@ -90,6 +98,8 @@ fn parse_end_template(parser: &mut Parser) {
         }
     };
 
+    // we consume %>
+    parser.bump();
 }
 
 /// Parse the content inside a <% template xxx() %> tag
