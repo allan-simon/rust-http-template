@@ -83,3 +83,40 @@ pub fn block_to_string(
     context.codemap().span_to_snippet(tmp_span).unwrap_or(String::new())
 
 }
+
+///
+///
+pub fn parse_end_tag(
+    parser: &mut Parser,
+    tag_name: &str
+) {
+
+    let curent_tag_name = parser.this_token_to_string();
+    let curent_tag_name = curent_tag_name.as_slice();
+    parser.bump();
+
+    match (
+        curent_tag_name,
+        parser.token.clone()
+    ) {
+        (
+            x,
+            token::EOF
+        ) if
+            x == tag_name &&
+            is_tag_end(parser)
+         => { println!("found end {}", tag_name)},
+
+        (one, two) => {
+            parser.fatal(format!(
+                "Expected `<% end template %>`, found <% end {} {}",
+                one,
+                Parser::token_to_string(&two)
+            ).as_slice());
+        }
+    };
+
+    parser.bump();
+
+
+}

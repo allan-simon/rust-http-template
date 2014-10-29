@@ -1,6 +1,8 @@
 use syntax::ast;
 use syntax::ptr::P;
 
+use tags;
+
 /// Define a HTML Template, i.e a piece of html
 /// with other tags inside it
 ///
@@ -30,7 +32,8 @@ pub enum SubTag {
     RawHtml(String),
     RawRust(String),
     Include(P<ast::Expr>),
-    Print(ast::Ident)
+    Print(ast::Ident),
+    If(tags::if_tag::If)
 }
 
 

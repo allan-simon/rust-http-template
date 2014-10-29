@@ -13,6 +13,9 @@ use tags::template::RawHtml;
 use tags::template::RawRust;
 use tags::template::Print;
 use tags::template::Include;
+use tags::template::If;
+
+use tags::template::SubTag;
 
 ///
 ///
@@ -105,38 +108,15 @@ fn generate_template_head (
 }
 
 ///
-///
-///
-fn generate_template_body (
-    template: Template,
+fn generate_sub_tags_str(
+    sub_tags: Vec<SubTag>,
     cx: &base::ExtCtxt
-) -> P<ast::Block> {
+) -> String {
 
-    // because of the fact that <% rust %> can contains incomplete
-    // (for example  <% rust if true { %> it's true ! <%rust } %>
-    // code, we can't parse them directly, instead we need an
-    // intermdiate state in which we will recreate a block source code
-    // that we will parse as a last step
-    // we need a starting "{" and a final "}" to use block parser
-    let mut template_block_str = "{\n".to_string();
+    let mut sub_tags_str = String::new();
+    sub_tags_str.push('\n');
 
-    // we declare a "out" variable that will be used to contains the
-    // html output
-    // Note: we could have written directly in template_block_str
-    // without using quote_stmt! and "to_source", but it makes the code
-    // "cleaner" and will ease the transition if one day we find a better
-    // solution to not have to go through this second parsing step
-    // (maybe at least test if we have 0 <% rust %> tag, in which case
-    // we can directly use quote_stmt output
-    let expr = quote_stmt!(
-        cx,
-        let mut out = String::new();
-    );
-
-    template_block_str.push_str(expr.to_source().as_slice());
-    template_block_str.push('\n');
-
-    for stuff in template.sub_tags.into_iter() {
+    for stuff in sub_tags.into_iter() {
         let expr = match stuff {
             // Raw html are added directly directly to "out"
             RawHtml(x) => {
@@ -162,6 +142,19 @@ fn generate_template_body (
                 print.to_source()
 
             },
+            // We generate a if condition { sub_tags }
+            If(x) => {
+                let mut if_str = "if ".to_string();
+                if_str.push_str(x.condition.unwrap().to_source().as_slice());
+                if_str.push_str(" {\n");
+                if_str.push_str(
+                    generate_sub_tags_str(x.sub_tags, cx).as_slice()
+                );
+                if_str.push_str("\n}\n");
+
+                if_str
+            },
+
             // we put call to other template or function
             // the return value of which is added to the output
             // buffer
@@ -177,9 +170,48 @@ fn generate_template_body (
             }
         };
 
-        template_block_str.push_str(expr.as_slice());
-        template_block_str.push('\n');
+        sub_tags_str.push_str(expr.as_slice());
+        sub_tags_str.push('\n');
     }
+
+
+    sub_tags_str
+}
+
+///
+///
+///
+fn generate_template_body (
+    template: Template,
+    cx: &base::ExtCtxt
+) -> P<ast::Block> {
+
+    // (for example  <% rust if true { %> it's true ! <%rust } %>
+    // code, we can't parse them directly, instead we need an
+    // intermdiate state in which we will recreate a block source code
+    // that we will parse as a last step
+    // we need a starting "{" and a final "}" to use block parser
+
+    let mut template_block_str = "{\n".to_string();
+
+    // we declare a "out" variable that will be used to contains the
+    // html output
+    // Note: we could have written directly in template_block_str
+    // without using quote_stmt! and "to_source", but it makes the code
+    // "cleaner" and will ease the transition if one day we find a better
+    // solution to not have to go through this second parsing step
+    // (maybe at least test if we have 0 <% rust %> tag, in which case
+    // we can directly use quote_stmt output
+    let expr = quote_stmt!(
+        cx,
+        let mut out = String::new();
+    );
+    template_block_str.push_str(expr.to_source().as_slice());
+
+
+    template_block_str.push_str(
+        generate_sub_tags_str(template.sub_tags, cx).as_slice()
+    );
 
     // we create the return statement
     let return_expr = quote_stmt!(

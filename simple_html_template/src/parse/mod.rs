@@ -20,6 +20,7 @@ pub mod template;
 pub mod rust;
 pub mod print;
 pub mod include;
+pub mod if_tag;
 
 ///
 ///

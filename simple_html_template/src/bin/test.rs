@@ -23,6 +23,11 @@ html_template! hello_world {
 ///
 ///
 <% template body(number: uint) %>
+    <% if number > 4 %>
+        woow
+
+    <% end if %>
+
     <% rust for _ in range(0, number) { %>
         hello world <%= number %>
 

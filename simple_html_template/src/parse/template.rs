@@ -6,16 +6,19 @@ use parse_utils::block_to_string;
 use parse_utils::is_tag_start;
 use parse_utils::eat_tag_start;
 use parse_utils::is_tag_end;
+use parse_utils::parse_end_tag;
 
 use parse::rust::parse_rust_tag;
 use parse::include::parse_include_tag;
 use parse::print::parse_print_tag;
+use parse::if_tag::parse_if_tag;
 
 use tags::TEMPLATE;
 use tags::RUST;
 use tags::PRINT;
 use tags::END;
 use tags::INCLUDE;
+use tags::IF;
 
 use tags::template::Template;
 use tags::template::SubTag;
@@ -33,7 +36,7 @@ pub fn parse_template_tag(
 
     parse_start_template(&mut template, parser);
     template.sub_tags = parse_inner_template(parser, context);
-    parse_end_template(parser);
+    parse_end_tag(parser, TEMPLATE);
 
     return template;
 }
@@ -72,41 +75,12 @@ fn parse_start_template(state: &mut Template, parser: &mut Parser) {
     parser.bump();
 }
 
-///
-///
-///
-fn parse_end_template(parser: &mut Parser) {
-
-    match (
-        parser.parse_ident().as_str(),
-        parser.token.clone()
-    ) {
-        (
-            template,
-            token::EOF
-        ) if
-            template == TEMPLATE &&
-            is_tag_end(parser)
-         => { println!("found end template")},
-
-        (one, two) => {
-            parser.fatal(format!(
-                "Expected `<% end template %>`, found <% end {} {}",
-                one,
-                Parser::token_to_string(&two)
-            ).as_slice());
-        }
-    };
-
-    // we consume %>
-    parser.bump();
-}
 
 /// Parse the content inside a <% template xxx() %> tag
 /// and return when we've finished to parse the <% end template %>
 /// if we have parsed all tokens without seeing <% end template %>
 /// we quit with error
-fn parse_inner_template (
+pub fn parse_inner_template (
     parser: &mut Parser,
     context: &base::ExtCtxt
 ) -> Vec<SubTag> {
@@ -143,6 +117,7 @@ fn parse_inner_template (
             RUST => sub_tags.push(parse_rust_tag(parser, context)),
             INCLUDE => sub_tags.push(parse_include_tag(parser)),
             PRINT => sub_tags.push(parse_print_tag(parser)),
+            IF => sub_tags.push(parse_if_tag(parser, context)),
             END => {
                 return sub_tags;
 
