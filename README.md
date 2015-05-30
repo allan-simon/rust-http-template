@@ -33,7 +33,7 @@ extern crate html_template;
 
 html_template! hello_world {
 
-<% template plop() %>
+<% template my_main_page() %>
 
 <html>
     <head>
@@ -67,7 +67,7 @@ html_template! hello_world {
 
 fn main () {
 
-    println!("{}", hello_world::plop());
+    println!("{}", hello_world::my_main_page());
 }
 
 ```
