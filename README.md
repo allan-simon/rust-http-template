@@ -72,8 +72,16 @@ fn main () {
 
 ```
 
+## list of available tag (for the moment)
+
+  * `<% template  your_name(param1: type1, etc. %>  <% end template %>` => equivalent of a function, can contains html or other tags , they can then be access in your rust code by doing `template_name::your_name()`
+  * `<% rust A_BIT_OF_RUST %>`  orphan tag, it does not need to be a complete statement, but it has to not contains anything invalid by itself , you can use it to implement everything which is not yet implemented by a more specialized tag
+  *  `<% include yourname()  %>` orphan tags, use to class an other template inside your template
+  *  `<% if YOUR_TEST %><% end if %>` a if tag 
+
+
 ## Special Thanks
 
 I would like to thanks Artyom, the guy behind the cppcms c++ web framework
-for his templating engine that is converted into C++, he's the one who inspired
+for his templating engine that is convertedd into C++, he's the one who inspired
 me to do that project for rust
